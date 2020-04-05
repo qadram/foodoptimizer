@@ -1,10 +1,33 @@
 .App {
-  text-align: center;
+  text-align: left;
+  font-family: "Open Sans", Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 14px;
 }
 
 .App-logo {
   height: 40vmin;
   pointer-events: none;
+}
+
+td
+{
+  border: 1px solid;
+  vertical-align: top;
+}
+
+th
+{
+  vertical-align: top;
+}
+
+tr
+{
+  /* background-color: beige; */
+}
+
+table
+{
+  width:100%;
 }
 
 @media (prefers-reduced-motion: no-preference) {
