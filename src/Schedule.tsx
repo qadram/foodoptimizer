@@ -6,6 +6,7 @@ import InventoryItem from './InventoryItem';
 import Meal from './Meal';
 import Menu from './Menu';
 import MealSchedule from './MealSchedule';
+import People, { Person } from './People';
 
 
 export type ScheduleProps = {
@@ -51,6 +52,10 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
         let mealplanfile = require('./mealplan.csv');
         let mealplancsv = await this.readFile(mealplanfile);
 
+        let peoplefile = require('./people.csv');
+        let peoplefilecsv = await this.readFile(peoplefile);
+
+
         let startdate = "2020/04/04";
         let enddate = "2020/04/06";
         let inventory: Inventory = new Inventory();
@@ -62,11 +67,12 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
         const mealplan: MealPlan = new MealPlan();
         await mealplan.import(mealplancsv);
 
+        const people: People = new People();
+        await people.import(peoplefilecsv);
+
+
         let warnings: Array<string> = [];
 
-        let schedule: Array<string> = [];
-
-        let testmeals: Array<any> = [];
 
 
         //Sort inventory to find out what are the items that needed to be consumed first
@@ -117,79 +123,52 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
         let istartdate = Date.parse(startdate);
         let ienddate = Date.parse(enddate);
 
-        let mealschedule: Map<string, MealPlan> = new Map();
+        let mealschedule: Map<string, Array<MealPlan>> = new Map();
 
         //Iterate through the dates period
         for (let index = istartdate; index < ienddate; index += (24 * 3600000)) {
             let d = new Date(index);
+            let mealplans: Array<MealPlan> = [];
 
-            //Setup a meal plan for the current date, with the goal of filling it with valid meals
-            let todaysplan: MealPlan = new MealPlan();
-            todaysplan.clone(mealplan);
-
-            console.log('d.toDateString(): ', d.toDateString());
-            console.log('todaysplan: ', todaysplan);
-
-            //Iterate through all the menus for the day
-            todaysplan.items.forEach((menu: Menu) => {
-                console.log('menu: ', menu);
-
-                // let menuitems: Array<string> = [];
-                menu.items.forEach((type: string, menuindex: number) => {
-                    console.log('type: ', type);
-                    console.log('menuindex: ', menuindex);
-                    let index = -1;
-                    if (mealcandidates.some((meal: Meal, k: number): boolean => {
-                        if ((meal.when === menu.name) && (meal.type === type)) {
-                            index = k;
-                            return (true);
+            people.items.forEach((person: Person) => {
+                //Setup a meal plan for the current date, with the goal of filling it with valid meals
+                let todaysplan: MealPlan = new MealPlan();
+                todaysplan.clone(mealplan);
+                todaysplan.person = person.name;
+                //Iterate through all the menus for the day
+                todaysplan.items.forEach((menu: Menu) => {
+                    menu.items.forEach((type: string, menuindex: number) => {
+                        let index = -1;
+                        if (mealcandidates.some((meal: Meal, k: number): boolean => {
+                            if ((meal.when === menu.name) && (meal.type === type) && (meal.age === person.age)) {
+                                index = k;
+                                return (true);
+                            }
+                            else return (false);
+                        })) {
+                            let validmeal = mealcandidates[index];
+                            menu.items[menuindex] = validmeal.name;
+                            mealcandidates.splice(index, 1);
                         }
-                        else return (false);
-                    })) {
-                        let validmeal = mealcandidates[index];
-                        menu.items[menuindex] = validmeal.name;
-                        mealcandidates.splice(index, 1);
-                    }
-                    else {
-                        // let validmeal = mealcandidates[index];
-                        menu.items[menuindex] = `⚠️ Nothing for "${type}"`;
-                        // schedule.push('Cannot find anything to eat for ' + type);
-                    }
+                        else {
+                            menu.items[menuindex] = `⚠️ Nothing for "${type}"`;
+                        }
+                    });
                 });
-                // let todaymenu = new Menu(menu.name, menuitems);
-                // todaysplan.items.push(todaymenu);
+                mealplans.push(todaysplan);
             });
-            mealschedule.set(d.toDateString(), todaysplan);
+
+            mealschedule.set(d.toDateString(), mealplans);
+
 
         }
 
         console.log('mealschedule: ', mealschedule);
-
-        // this.log(d);
-        // mealschedule.set(d.toDateString(), new MealPlan());
-
         //TODO: For each day, we have to fill the meal plan with information from the meal candidates
         this.log('mealschedule: ', mealschedule);
         this.log('mealcandidates: ', mealcandidates);
 
-
-        let w: Array<any> = [];
-
-        // w.push(testmeals);
-        // testmeals.forEach(testmeal => {
-        //     w.push(testmeal);
-        // });
-
-        // schedule.forEach(item => {
-        //     w.push(<tr><td>{item}</td></tr>);
-        // });
-
-
-        // warnings.forEach(warning => {
-        //     w.push(<tr><td>{warning}</td></tr>);
-        // });
-
-        this.setState({ data: <MealSchedule schedule={mealschedule}/> });
+        this.setState({ data: <MealSchedule schedule={mealschedule} /> });
 
 
         //TODO: Iterate from today until end date, day by day

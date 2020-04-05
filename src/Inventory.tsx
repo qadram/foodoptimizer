@@ -23,9 +23,7 @@ export default class Inventory {
     }
 
     public hasEnough(food: Food, amount: number): boolean {
-        // console.log('amount: ', amount);
         return (this.items.some((item: InventoryItem): boolean => {
-            // console.log('item: ', item);
             if ((item.food.name === food.name) && (item.amount >= amount)) {
                 return (true);
             }
@@ -38,7 +36,6 @@ export default class Inventory {
     public hasIngredientsFor(meal: Meal): boolean {
         let result = true;
         meal.ingredients.forEach((ingredient: Ingredient) => {
-            // console.log('ingredient: ', ingredient);
             if (!this.hasEnough(ingredient.food, ingredient.amount)) {
                 result = false;
             }

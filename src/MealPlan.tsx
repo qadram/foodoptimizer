@@ -7,6 +7,8 @@ export default class MealPlan {
      */
     public items: Array<Menu> = [];
 
+    public person: string = '';
+
     public add(item: Menu): void {
         this.items.push(item);
     }
