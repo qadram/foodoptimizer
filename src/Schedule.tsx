@@ -104,6 +104,9 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
                         inventory.removeIngredientsOf(meal);
                         validmeals.push(meal);
                     }
+                    else {
+                        warnings.push(`⚠️ Warning!!: A meal was found for ${food.name} but there is not enough amount in inventory: ` + meal.name);
+                    }
                 }
             });
             //TODO: Try to space equal meals, to prevent eating every day the same
@@ -117,6 +120,7 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
             });
             if (validmeals.length === 0) {
                 warnings.push(`⚠️ Warning!!: No valid meal that includes ${food.name} or not enough amount in inventory`);
+
             }
         });
 
@@ -168,7 +172,7 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
         this.log('mealschedule: ', mealschedule);
         this.log('mealcandidates: ', mealcandidates);
 
-        this.setState({ data: <MealSchedule schedule={mealschedule} /> });
+        this.setState({ data: <MealSchedule schedule={mealschedule} warnings={warnings} /> });
 
 
         //TODO: Iterate from today until end date, day by day
