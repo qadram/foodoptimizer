@@ -7,6 +7,7 @@ import Meal from './Meal';
 import Menu from './Menu';
 import MealSchedule from './MealSchedule';
 import People, { Person } from './People';
+import { withGoogleSheets } from 'react-db-google-sheets';
 
 
 export type ScheduleProps = {
@@ -16,9 +17,7 @@ export type ScheduleState = {
     data: any;
 }
 
-
-
-export default class Schedule extends Component<ScheduleProps, ScheduleState> {
+class Schedule extends Component<ScheduleProps, ScheduleState> {
 
     state = {
         data: null,
@@ -43,37 +42,30 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
 
     // eslint-disable-next-line react/require-render-return
     async componentDidMount() {
-        let inventorycsvfile = require('./inventory.csv');
-        let inventorycsv = await this.readFile(inventorycsvfile);
-
-        let mealscsvfile = require('./meals.csv');
-        let mealscsv = await this.readFile(mealscsvfile);
-
-        let mealplanfile = require('./mealplan.csv');
-        let mealplancsv = await this.readFile(mealplanfile);
-
-        let peoplefile = require('./people.csv');
-        let peoplefilecsv = await this.readFile(peoplefile);
-
-
         let startdate = "2020/04/04";
-        let enddate = "2020/04/06";
+        let enddate = "2020/04/26";
+
+
         let inventory: Inventory = new Inventory();
-        await inventory.import(inventorycsv);
+        //@ts-ignore
+        inventory.importFromArray(this.props.db.Inventory);
 
         let meallist: MealList = new MealList();
-        await meallist.import(mealscsv);
+        //@ts-ignore
+        meallist.importFromArray(this.props.db.Meals);
+        console.log('meallist: ', meallist);
 
         const mealplan: MealPlan = new MealPlan();
-        await mealplan.import(mealplancsv);
+        //@ts-ignore
+        mealplan.importFromArray(this.props.db.MealPlan);
 
         const people: People = new People();
-        await people.import(peoplefilecsv);
-
+        //@ts-ignore
+        people.importFromArray(this.props.db.People);
 
         let warnings: Array<string> = [];
 
-
+        let inventoryamountwarnings: Array<string> = [];
 
         //Sort inventory to find out what are the items that needed to be consumed first
         inventory.items.sort((item1: InventoryItem, item2: InventoryItem): number => {
@@ -86,27 +78,36 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
         })
 
 
-        this.log('inventory: ', inventory);
+        console.log('inventory: ', inventory);
+
+        //TODO: At this moment, it doesnt test to consume the same meal on the same day!!! :-(
+        //TODO: Inventory should be removed when the meal is assigned to an specific person/day
+        //TODO: Maybe it's not a one-pass, second-pass, but a single-pass in which the meal is validated, assigned, and removed from the inventory, so it cannot be validated again
         //Iterate inventory to find out valid meals for the food that expired first
         const mealcandidates: Array<Meal> = [];
-
         inventory.items.forEach((item: InventoryItem) => {
             //Find all meals that use this food
             let food = item.food;
             // this.log('food: ', food);
             let validmeals: Array<Meal> = [];
+            let amountissue: boolean = false;
             meallist.items.forEach((meal: Meal) => {
                 if (meal.contains(food)) {
                     // this.log(food.name);
                     //A valid meal should be considered valid if there is inventory for that food, and for the rest of ingredients
+                    //TODO: While there are ingredientes for the meal in the inventory, must be added!!!
+                    // while (!amountissue) {
                     if (inventory.hasIngredientsFor(meal)) {
                         //Subtract from inventory
                         inventory.removeIngredientsOf(meal);
                         validmeals.push(meal);
                     }
                     else {
-                        warnings.push(`⚠️ Warning!!: A meal was found for ${food.name} but there is not enough amount in inventory: ` + meal.name);
+                        amountissue = true;
+                        console.log(`⚠️ Warning!!: A meal was found for ${food.name} but there is not enough amount in inventory: ` + meal.name);
+                        inventoryamountwarnings.push(`⚠️ Warning!!: A meal was found for ${food.name} but there is not enough amount in inventory: ` + meal.name);
                     }
+                    // }
                 }
             });
             //TODO: Try to space equal meals, to prevent eating every day the same
@@ -117,13 +118,17 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
             //TODO: Ban foods for a person, that is, specific people that won't eat an specific meal
             validmeals.forEach(validmeal => {
                 mealcandidates.push(validmeal);
+
             });
             if (validmeals.length === 0) {
-                warnings.push(`⚠️ Warning!!: No valid meal that includes ${food.name} or not enough amount in inventory`);
+                if (!amountissue) {
+                    warnings.push(`⚠️ Warning!!: No valid meal that includes ${food.name}`);
+                }
 
             }
         });
 
+        console.log('mealcandidates: ', mealcandidates);
         let istartdate = Date.parse(startdate);
         let ienddate = Date.parse(enddate);
 
@@ -144,7 +149,13 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
                     menu.items.forEach((type: string, menuindex: number) => {
                         let index = -1;
                         if (mealcandidates.some((meal: Meal, k: number): boolean => {
-                            if ((meal.when === menu.name) && (meal.type === type) && (meal.age === person.age)) {
+                            if ((meal.when === menu.name) && (meal.type === type) && ((meal.age === person.age) || (meal.age === 'Both'))) {
+                                //If it's a meal for an specific person, then, check it
+                                if (meal.person !== '') {
+                                    if (meal.person !== person.name) {
+                                        return (false);
+                                    }
+                                }
                                 index = k;
                                 return (true);
                             }
@@ -155,7 +166,7 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
                             mealcandidates.splice(index, 1);
                         }
                         else {
-                            menu.items[menuindex] = `⚠️ Nothing for "${type}"`;
+                            menu.items[menuindex] = `⚠️ ${type}`;
                         }
                     });
                 });
@@ -172,7 +183,9 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
         this.log('mealschedule: ', mealschedule);
         this.log('mealcandidates: ', mealcandidates);
 
-        this.setState({ data: <MealSchedule schedule={mealschedule} warnings={warnings} /> });
+        let totalwarnings = warnings.concat(inventoryamountwarnings);
+
+        this.setState({ data: <MealSchedule schedule={mealschedule} warnings={totalwarnings} /> });
 
 
         //TODO: Iterate from today until end date, day by day
@@ -184,9 +197,14 @@ export default class Schedule extends Component<ScheduleProps, ScheduleState> {
     render() {
         if (this.state.data === null) {
             return (<div>loading....</div>)
+            // return(<div>{this.props.db.Inventory.map(data => (
+            //     <span>{data.id}</span>
+            //   ))}</div>);
         }
         else {
             return (<div><table><tbody>{this.state.data}</tbody></table></div>)
         }
     }
 }
+
+export default withGoogleSheets(['Inventory', 'Meals', 'MealPlan', 'People'])(Schedule);

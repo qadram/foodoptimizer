@@ -20,6 +20,12 @@ export default class People {
         this.items.push(person);
     }
 
+    public importFromArray(contents: Array<any>) {
+        contents.forEach(item => {
+            this.add(new Person(item.Name, item.Age));
+        });
+    }    
+
     public async import(csvcontents: string): Promise<void> {
         let parser = csv();
         let json = await parser.fromString(csvcontents);

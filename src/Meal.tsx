@@ -8,6 +8,7 @@ export default class Meal extends Component {
     public when: string = '';
     public type: string = '';
     public age: string = '';
+    public person: string = '';
 
     public contains(food: Food): boolean {
         return (this.ingredients.some((ingredient: Ingredient) => {
@@ -20,17 +21,17 @@ export default class Meal extends Component {
         }));
     }
 
-    render()
-    {
-        return(<td>{this.name}</td>);
+    render() {
+        return (<td>{this.name}</td>);
     }
 
-    constructor(name: string, when: string, type: string, age: string, ingredients: Array<Ingredient>) {
+    constructor(name: string, when: string, type: string, age: string, person: string, ingredients: Array<Ingredient>) {
         super({});
         this.name = name;
         this.when = when;
         this.type = type;
         this.age = age;
+        this.person = person;
         this.ingredients = ingredients;
     }
 }

@@ -3,11 +3,14 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
+import GoogleSheetsProvider from 'react-db-google-sheets';
 
 ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  <GoogleSheetsProvider>
+  {/* <React.StrictMode> */}
+    <App />    
+  {/* </React.StrictMode> */}
+  </GoogleSheetsProvider>,
   document.getElementById('root')
 );
 

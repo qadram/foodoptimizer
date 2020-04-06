@@ -22,8 +22,19 @@ export default class Inventory {
         });
     }
 
+    public importFromArray(contents: Array<any>) {
+        contents.forEach(item => {
+            this.add(new InventoryItem(new Food(item.Item), item.Date, parseInt(item.Amount)));
+        });
+    }
+
     public hasEnough(food: Food, amount: number): boolean {
         return (this.items.some((item: InventoryItem): boolean => {
+            if ((item.food.name === food.name) && (item.amount < amount)) {
+                console.log('item.food.name: ', item.food.name);
+                console.log('amount requested: ', amount);
+                console.log('amount in inventory: ', item.amount);
+            }
             if ((item.food.name === food.name) && (item.amount >= amount)) {
                 return (true);
             }

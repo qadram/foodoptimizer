@@ -13,6 +13,7 @@
     "csvtojson": "^2.0.10",
     "fs": "0.0.1-security",
     "react": "^16.13.1",
+    "react-db-google-sheets": "^2.0.0",
     "react-dom": "^16.13.1",
     "react-scripts": "3.4.1",
     "typescript": "~3.7.2"

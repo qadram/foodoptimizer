@@ -19,6 +19,25 @@ export default class MealPlan {
         });
     }
 
+    public importFromArray(contents: Array<any>) {
+        contents.forEach(item => {
+            let items: Array<string> = [];
+            if (item.Item_0 !== null) {
+                items.push(item.Item_0);
+            }
+            if (item.Item_1 !== null) {
+                items.push(item.Item_1);
+            }
+            if (item.Item_2 !== null) {
+                items.push(item.Item_2);
+            }
+            if (item.Item_3 !== null) {
+                items.push(item.Item_3);
+            }
+            this.add(new Menu(item.Name, items));
+        });       
+    }    
+
     public async import(csvcontents: string): Promise<void> {
         let parser = csv();
         let json = await parser.fromString(csvcontents);
